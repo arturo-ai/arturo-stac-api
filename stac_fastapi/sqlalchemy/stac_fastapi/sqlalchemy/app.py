@@ -29,3 +29,20 @@ api = StacApi(
     client=CoreCrudClient(session=session),
 )
 app = api.app
+
+
+def run():
+    """Run the app with uvicorn."""
+    import uvicorn
+
+    uvicorn.run(
+        "stac_fastapi.sqlalchemy.app:app",
+        host="0.0.0.0",
+        port=8000,
+        log_level="info",
+        reload=True,
+    )
+
+
+if __name__ == "__main__":
+    run()

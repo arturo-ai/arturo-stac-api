@@ -3,6 +3,7 @@ from typing import Any, Dict, List, Optional, Type
 
 import attr
 from fastapi import APIRouter, FastAPI
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.openapi.utils import get_openapi
 from stac_pydantic import Collection, Item, ItemCollection
 from stac_pydantic.api import ConformanceClasses, LandingPage
@@ -16,10 +17,7 @@ from stac_fastapi.api.models import (
     SearchGetRequest,
     _create_request_model,
 )
-from stac_fastapi.api.routes import (
-    create_endpoint_from_model,
-    create_endpoint_with_depends,
-)
+from stac_fastapi.api.routes import create_endpoint
 
 # TODO: make this module not depend on `stac_fastapi.extensions`
 from stac_fastapi.extensions.core import FieldsExtension
@@ -102,9 +100,7 @@ class StacApi:
             response_model_exclude_unset=True,
             response_model_exclude_none=True,
             methods=["GET"],
-            endpoint=create_endpoint_with_depends(
-                self.client.landing_page, EmptyRequest
-            ),
+            endpoint=create_endpoint(self.client.landing_page, EmptyRequest),
         )
         router.add_api_route(
             name="Conformance Classes",
@@ -113,9 +109,7 @@ class StacApi:
             response_model_exclude_unset=True,
             response_model_exclude_none=True,
             methods=["GET"],
-            endpoint=create_endpoint_with_depends(
-                self.client.conformance, EmptyRequest
-            ),
+            endpoint=create_endpoint(self.client.conformance, EmptyRequest),
         )
         router.add_api_route(
             name="Get Item",
@@ -124,7 +118,7 @@ class StacApi:
             response_model_exclude_unset=True,
             response_model_exclude_none=True,
             methods=["GET"],
-            endpoint=create_endpoint_with_depends(self.client.get_item, ItemUri),
+            endpoint=create_endpoint(self.client.get_item, ItemUri),
         )
         router.add_api_route(
             name="Search",
@@ -133,9 +127,7 @@ class StacApi:
             response_model_exclude_unset=True,
             response_model_exclude_none=True,
             methods=["POST"],
-            endpoint=create_endpoint_from_model(
-                self.client.post_search, search_request_model
-            ),
+            endpoint=create_endpoint(self.client.post_search, search_request_model),
         ),
         router.add_api_route(
             name="Search",
@@ -144,9 +136,7 @@ class StacApi:
             response_model_exclude_unset=True,
             response_model_exclude_none=True,
             methods=["GET"],
-            endpoint=create_endpoint_with_depends(
-                self.client.get_search, SearchGetRequest
-            ),
+            endpoint=create_endpoint(self.client.get_search, SearchGetRequest),
         )
         router.add_api_route(
             name="Get Collections",
@@ -155,9 +145,7 @@ class StacApi:
             response_model_exclude_unset=True,
             response_model_exclude_none=True,
             methods=["GET"],
-            endpoint=create_endpoint_with_depends(
-                self.client.all_collections, EmptyRequest
-            ),
+            endpoint=create_endpoint(self.client.all_collections, EmptyRequest),
         )
         router.add_api_route(
             name="Get Collection",
@@ -166,9 +154,7 @@ class StacApi:
             response_model_exclude_unset=True,
             response_model_exclude_none=True,
             methods=["GET"],
-            endpoint=create_endpoint_with_depends(
-                self.client.get_collection, CollectionUri
-            ),
+            endpoint=create_endpoint(self.client.get_collection, CollectionUri),
         )
         router.add_api_route(
             name="Get ItemCollection",
@@ -177,9 +163,7 @@ class StacApi:
             response_model_exclude_unset=True,
             response_model_exclude_none=True,
             methods=["GET"],
-            endpoint=create_endpoint_with_depends(
-                self.client.item_collection, ItemCollectionUri
-            ),
+            endpoint=create_endpoint(self.client.item_collection, ItemCollectionUri),
         )
         self.app.include_router(router)
 
@@ -190,7 +174,7 @@ class StacApi:
 
         # TODO: parametrize
         openapi_schema = get_openapi(
-            title="Arturo STAC API", version="0.1", routes=self.app.routes
+            title="STAC FastAPI", version="0.1", routes=self.app.routes
         )
 
         self.app.openapi_schema = openapi_schema
@@ -237,3 +221,6 @@ class StacApi:
 
         # customize openapi
         self.app.openapi = self.customize_openapi
+
+        # add gzip middleware
+        self.app.add_middleware(GZipMiddleware)
